@@ -1,9 +1,14 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from contextlib import asynccontextmanager
 import logging
 
+from models import RecommendationRequest, RecommendationResponse
+from recommender import CollaborativeFilter
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+cf_model = CollaborativeFilter()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -20,4 +25,26 @@ app = FastAPI(
 
 @app.get("/health")
 def health_check():
-    return {"status": "ok"}
+    return {"status": "ok",
+            "model_trained": cf_model.user_item_matrix is not None
+        }
+
+@app.post("/recommendations", response_model=RecommendationResponse)
+def get_recommendations(request: RecommendationRequest):
+    if cf_model.user_item_matrix is None:
+        raise HTTPException(
+            status_code=503,
+            detail="Model not trained yet. No viewing history available."
+        )
+    
+    recommended_ids, scores = cf_model.recommend(
+        user_id=request.user_id,
+        watched_ids=request.watched_movie_ids,
+        limit=request.limit
+    )
+
+    return RecommendationResponse(
+        user_id=request.user_id,
+        recommended_movie_ids=recommended_ids,
+        confidence_scores=scores
+    )
