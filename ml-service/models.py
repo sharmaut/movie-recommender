@@ -1,10 +1,12 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional
 
 class RecommendationRequest(BaseModel):
-    user_id: int
-    watched_movie_ids: list[int]
+    user_id: int = Field(alias="userId")
+    watched_movie_ids: list[int] = Field(alias="watchedMovieIds")
     limit: int = 10
+
+    model_config = {"populate_by_name": True}
 
 class RecommendationResponse(BaseModel):
     user_id: int
