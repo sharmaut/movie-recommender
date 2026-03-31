@@ -89,4 +89,3 @@ python3 -m uvicorn main:app --reload --port 8000
 - How Collaborative Filtering and cosine similarity work mathematically
 - How JWT authentication works end to end
 - How to connect two independent services over REST
-- The cold start problem in recommendation systems and how to handle it
