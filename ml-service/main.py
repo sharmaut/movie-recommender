@@ -5,6 +5,8 @@ import logging
 from models import RecommendationRequest, RecommendationResponse
 from recommender import CollaborativeFilter
 
+from database import get_viewing_history
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -13,6 +15,12 @@ cf_model = CollaborativeFilter()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Starting ML service...")
+    data = get_viewing_history()
+    if data:
+        cf_model.fit(data)
+        logger.info("Model trained successfully")
+    else:
+        logger.warning("No training data found - model not trained")
     yield
     logger.info("Shutting down ML service.")
 

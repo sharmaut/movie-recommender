@@ -31,10 +31,6 @@ class CollaborativeFilter:
                    self.user_item_matrix.shape[1])
 
     def recommend(self, user_id: int, watched_ids: list[int], limit: int = 10):
-        """
-        Return top N recommended movie IDs for a user.
-        Falls back to popularity if user not in training data.
-        """
         if self.user_item_matrix is None:
             logger.warning("Model not trained yet")
             return [], []
@@ -44,9 +40,16 @@ class CollaborativeFilter:
             return self._popularity_fallback(watched_ids, limit)
 
         user_idx = self.user_item_matrix.index.get_loc(user_id)
-        sim_scores = self.similarity_matrix[user_idx]
-        similar_users = np.argsort(sim_scores)[::-1][1:21]
+        sim_scores = self.similarity_matrix[user_idx].copy()
+        sim_scores[user_idx] = 0  # exclude the user themselves
 
+        # Only use similar users with a positive similarity score
+        similar_mask = sim_scores > 0
+        if not similar_mask.any():
+            logger.info("No similar users found - using popularity fallback")
+            return self._popularity_fallback(watched_ids, limit)
+
+        similar_users = np.where(similar_mask)[0]
         similar_ratings = self.user_item_matrix.iloc[similar_users]
         weights = sim_scores[similar_users]
         weighted_scores = np.average(similar_ratings.values, axis=0, weights=weights)
