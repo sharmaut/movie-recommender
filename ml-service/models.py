@@ -14,3 +14,7 @@ class RecommendationResponse(BaseModel):
     model_version: str = "1.0.0"
     confidence_scores: Optional[list[float]] = None
 
+class MovieRecommendationResponse(BaseModel):
+    user_id: int
+    recommendations: list[dict]
+    model_version: str = "1.0.0"
