@@ -251,3 +251,140 @@ async def vector_search(query: str, limit: int = 10):
         "query": query,
         "movies": movies
     }
+
+@app.get("/recommendations/smart")
+async def smart_search(query: str, limit: int = 10):
+    """
+    Natural language movie search powered by Claude.
+    Claude interprets the query and calls the right endpoints automatically.
+    """
+    import anthropic
+
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+    client = anthropic.Anthropic(api_key=api_key)
+
+    # Ask Claude to interpret the query and extract parameters
+    message = client.messages.create(
+        model="claude-sonnet-4-20250514",
+        max_tokens=500,
+        messages=[
+            {
+                "role": "user",
+                "content": f"""You are a movie search assistant. A user has typed this search query: "{query}"
+
+Analyze this query and respond with ONLY a JSON object (no explanation, no markdown) with these fields:
+{{
+    "search_type": "similar" or "filter" or "vector",
+    "movie_name": "movie name if they mentioned a specific movie, otherwise null",
+    "genre": "action/comedy/drama/horror/romance/scifi/thriller or null",
+    "language": "en/hi/de/fr/es/ja/ko or null, default en",
+    "mood": "a short description of the vibe they want",
+    "year_from": null or a year number,
+    "year_to": null or a year number
+}}
+
+Rules:
+- If they mention a specific movie title, use search_type "similar"
+- If they mention a genre and/or language clearly, use search_type "filter"
+- If they describe a mood, vibe or theme without a specific movie, use search_type "vector"
+- Only include year range if they explicitly mention a decade or time period"""
+            }
+        ]
+    )
+
+    # Parse Claude's response
+    import json
+    response_text = message.content[0].text.strip()
+
+    try:
+        params = json.loads(response_text)
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=500, detail="Claude returned invalid JSON")
+
+    search_type = params.get("search_type", "vector")
+    movies = []
+    search_description = ""
+
+    if search_type == "similar" and params.get("movie_name"):
+        # Call existing similar movies logic
+        tmdb_api_key = os.getenv("TMDB_API_KEY")
+        headers = {"Authorization": f"Bearer {tmdb_api_key}"}
+        async with httpx.AsyncClient() as client_http:
+            search_response = await client_http.get(
+                "https://api.themoviedb.org/3/search/movie",
+                headers=headers,
+                params={"query": params["movie_name"], "language": "en-US", "page": 1}
+            )
+            search_data = search_response.json()
+            if search_data.get("results"):
+                movie_id = search_data["results"][0]["id"]
+                movie_title = search_data["results"][0]["title"]
+                similar_response = await client_http.get(
+                    f"https://api.themoviedb.org/3/movie/{movie_id}/recommendations",
+                    headers=headers,
+                    params={"language": "en-US", "page": 1}
+                )
+                similar_data = similar_response.json()
+                for movie in similar_data.get("results", [])[:limit]:
+                    movies.append({
+                        "tmdb_id": movie["id"],
+                        "title": movie["title"],
+                        "overview": movie.get("overview"),
+                        "release_date": movie.get("release_date"),
+                        "vote_average": movie.get("vote_average"),
+                        "poster_url": f"https://image.tmdb.org/t/p/w500{movie['poster_path']}"
+                                     if movie.get("poster_path") else None,
+                        "genres": movie.get("genre_ids", [])
+                    })
+                search_description = f'Movies similar to "{movie_title}"'
+
+    elif search_type == "filter":
+        tmdb_api_key = os.getenv("TMDB_API_KEY")
+        headers = {"Authorization": f"Bearer {tmdb_api_key}"}
+        genre_map = {
+            "action": 28, "comedy": 35, "drama": 18,
+            "horror": 27, "romance": 10749, "scifi": 878, "thriller": 53
+        }
+        filter_params = {
+            "sort_by": "vote_average.desc",
+            "vote_count.gte": 200,
+            "with_original_language": params.get("language", "en"),
+            "page": 1
+        }
+        if params.get("genre") and params["genre"].lower() in genre_map:
+            filter_params["with_genres"] = genre_map[params["genre"].lower()]
+        if params.get("year_from"):
+            filter_params["primary_release_date.gte"] = f"{params['year_from']}-01-01"
+        if params.get("year_to"):
+            filter_params["primary_release_date.lte"] = f"{params['year_to']}-12-31"
+
+        async with httpx.AsyncClient() as client_http:
+            response = await client_http.get(
+                "https://api.themoviedb.org/3/discover/movie",
+                headers=headers,
+                params=filter_params
+            )
+            data = response.json()
+            for movie in data.get("results", [])[:limit]:
+                movies.append({
+                    "tmdb_id": movie["id"],
+                    "title": movie["title"],
+                    "overview": movie.get("overview"),
+                    "release_date": movie.get("release_date"),
+                    "vote_average": movie.get("vote_average"),
+                    "poster_url": f"https://image.tmdb.org/t/p/w500{movie['poster_path']}"
+                                 if movie.get("poster_path") else None,
+                    "genres": movie.get("genre_ids", [])
+                })
+        search_description = f'Top {params.get("genre", "")} movies'
+
+    else:
+        movies = search_similar(params.get("mood", query), limit)
+        search_description = f'Movies matching "{query}"'
+
+    return {
+        "query": query,
+        "interpreted_as": params,
+        "search_description": search_description,
+        "movies": movies
+    }

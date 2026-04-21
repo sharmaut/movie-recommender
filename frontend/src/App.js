@@ -68,16 +68,21 @@ export default function App() {
     setError("");
     try {
       const res = await fetch(
-        `/recommendations/similar?movie_name=${encodeURIComponent(searchQuery)}&limit=20`
+        `/recommendations/smart?query=${encodeURIComponent(searchQuery)}&limit=20`
       );
       const data = await res.json();
-      setMovies(data.similar_movies || []);
-      setHeading(`Movies similar to "${data.searched_movie}"`);
+      if (data.movies?.length === 0) {
+        setError("No movies found. Try a different search.");
+        setMovies([]);
+      } else {
+        setMovies(data.movies || []);
+        setHeading(data.search_description || `Results for "${searchQuery}"`);
+      }
     } catch (err) {
       setError("Something went wrong. Make sure the ML service is running.");
     }
     setLoading(false);
-  };
+    };
 
   const filterMovies = async () => {
     setLoading(true);
@@ -109,7 +114,7 @@ export default function App() {
 
       {/* Search Section */}
       <div style={styles.section}>
-        <h2 style={styles.sectionTitle}>Find Similar Movies</h2>
+        <h2 style={styles.sectionTitle}>Smart Search - powered by Claude AI</h2>
         <div style={styles.row}>
           <input
             style={styles.input}
