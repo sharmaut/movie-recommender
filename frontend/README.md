@@ -1,70 +1,131 @@
-# Getting Started with Create React App
+# 🎬 Movie Recommender
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A full-stack movie recommendation system using Java Spring Boot, Python FastAPI, and React. Implements Collaborative Filtering with cosine similarity, Pinecone vector search, Claude API for AI-powered smart search, and an MCP server for agentic workflows.
 
-## Available Scripts
+## Architecture
 
-In the project directory, you can run:
+```
+User → React Frontend (port 3000)
+              ↓
+       Python FastAPI (port 8000)
+         ↓         ↓          ↓
+   PostgreSQL   Pinecone   Claude API
+   (CF Model)  (Vectors)  (Smart Search)
+         ↓
+      TMDB API
+```
 
-### `npm start`
+## Tech Stack
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+| Layer          | Technology                    | Purpose                                |
+| -------------- | ----------------------------- | -------------------------------------- |
+| Backend        | Java 21 / Spring Boot 3.5     | API, authentication, business logic    |
+| ML Engine      | Python 3.13 / FastAPI         | Recommendation algorithms              |
+| Frontend       | React                         | Movie browsing and search UI           |
+| Database       | PostgreSQL                    | Users and viewing history              |
+| Vector DB      | Pinecone                      | Semantic similarity search             |
+| AI Integration | Claude API                    | Natural language query understanding   |
+| MCP Server     | Model Context Protocol        | Agentic tool access via Claude Desktop |
+| ML Libraries   | Scikit-learn / Pandas / NumPy | Collaborative Filtering                |
+| Embeddings     | Sentence Transformers         | Movie text to vector conversion        |
+| Security       | JWT / BCrypt                  | Authentication and password hashing    |
+| Movie Data     | TMDB API                      | Real movie metadata and posters        |
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## Features
 
-### `npm test`
+### 1. Smart Search — powered by Claude API
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+Type natural language queries like "dark thriller from the 90s" or "feel good Korean comedy." Claude interprets the query, extracts genre, language, mood, and year range, then routes to the right search method automatically.
 
-### `npm run build`
+### 2. Collaborative Filtering Recommendations
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+Builds a user-item matrix from viewing history, computes cosine similarity between users, and recommends movies that similar users loved. Handles new users with a popularity fallback.
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+### 3. Genre, Language & Year Filter
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+Browse top rated movies by genre, language and decade. Supports 7 genres, 7 languages and 7 year ranges powered by TMDB Discover API.
 
-### `npm run eject`
+### 4. Similar Movie Search
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+Type any movie name and get similar movies back powered by TMDB's recommendation engine.
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+### 5. Semantic Vector Search
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+Converts movie descriptions into 384-dimensional embeddings using Sentence Transformers. Stores embeddings in Pinecone for semantic similarity search. Available via API.
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+### 6. MCP Server — Agentic Workflows
 
-## Learn More
+Exposes the movie recommender as tools that Claude Desktop can call autonomously. Claude decides which tool to use based on natural language input — search similar movies, filter by genre, or get personalised recommendations.
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+## API Endpoints
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+### Java Backend (port 8080)
 
-### Code Splitting
+- `POST /api/auth/login` — returns JWT token
+- `POST /api/users/register` — create account
+- `GET /api/users/{email}` — get user (requires JWT)
+- `GET /api/users/{userId}/recommendations` — ML recommendations
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+### Python ML Service (port 8000)
 
-### Analyzing the Bundle Size
+- `GET /health` — service status
+- `GET /recommendations/smart` — Claude AI powered natural language search
+- `POST /recommendations` — collaborative filtering
+- `POST /recommendations/detailed` — CF with full movie details
+- `GET /recommendations/filter` — filter by genre, language and year
+- `GET /recommendations/similar` — find similar movies by name
+- `GET /vector/search` — semantic vector search
+- `POST /vector/populate` — populate Pinecone with movies
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+## Running Locally
 
-### Making a Progressive Web App
+### Prerequisites
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+- Java 21
+- Python 3.13
+- PostgreSQL
+- Node.js
+- Claude Desktop (for MCP)
 
-### Advanced Configuration
+### Java Backend
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+```bash
+cd backend
+./mvnw spring-boot:run
+```
 
-### Deployment
+### Python ML Service
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+```bash
+cd ml-service
+source venv/bin/activate
+python3 -m uvicorn main:app --reload --port 8000
+```
 
-### `npm run build` fails to minify
+### React Frontend
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+```bash
+cd frontend
+npm start
+```
+
+### Environment Variables
+
+Create a `.env` file in `ml-service/`:
+
+```
+TMDB_API_KEY=your_tmdb_read_access_token
+PINECONE_API_KEY=your_pinecone_api_key
+PINECONE_INDEX=movie-recommender
+ANTHROPIC_API_KEY=your_anthropic_api_key
+```
+
+## What I Learned
+
+- How to architect a polyglot microservices system
+- How Collaborative Filtering and cosine similarity work mathematically
+- How vector embeddings represent meaning numerically
+- How to integrate the Claude API for natural language understanding
+- How to build an MCP server for agentic AI workflows
+- How JWT authentication works end to end
+- How to connect three independent services over REST
