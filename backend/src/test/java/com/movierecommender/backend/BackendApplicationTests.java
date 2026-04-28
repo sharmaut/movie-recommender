@@ -1,14 +1,18 @@
 package com.movierecommender.backend;
 
-import com.movierecommender.backend.config.JwtUtil;
-import com.movierecommender.backend.entity.User;
-import com.movierecommender.backend.repository.UserRepository;
-import com.movierecommender.backend.service.UserService;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
-import static org.junit.jupiter.api.Assertions.*;
+import com.movierecommender.backend.config.JwtUtil;
+import com.movierecommender.backend.entity.User;
+import com.movierecommender.backend.repository.UserRepository;
+import com.movierecommender.backend.service.UserService;
 
 @SpringBootTest
 class BackendApplicationTests {
@@ -37,12 +41,16 @@ class BackendApplicationTests {
 
 	@Test
 	void registerUser_throwsException_whenEmailAlreadyExists() {
-		RuntimeException exception = assertThrows(RuntimeException.class, () -> {
-			userService.registerUser("Utsav", "utsav@test.com", "password123");
-		});
+    String email = "duplicate_" + System.currentTimeMillis() + "@test.com";
 
-		assertEquals("Email already in use", exception.getMessage());
-	}
+    userService.registerUser("First User", email, "password123");
+
+    RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+        userService.registerUser("Second User", email, "password123");
+    });
+
+    assertEquals("Email already in use", exception.getMessage());
+}
 
 	@Test
 	void jwtUtil_generatesAndValidatesToken() {
