@@ -40,7 +40,7 @@ jobs:
           SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/movieapp
           SPRING_DATASOURCE_USERNAME: movieapp
           SPRING_DATASOURCE_PASSWORD: movieapp123
-        run: ./mvnw test
+        run: ./mvnw test -e
 
   python-lint:
     runs-on: ubuntu-latest
