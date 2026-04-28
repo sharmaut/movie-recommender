@@ -1,3 +1,14 @@
+error id: file://<HOME>/Documents/Projects/Personal%20Projects/movie-recommender/backend/src/test/java/com/movierecommender/backend/BackendApplicationTests.java:
+file://<HOME>/Documents/Projects/Personal%20Projects/movie-recommender/backend/src/test/java/com/movierecommender/backend/BackendApplicationTests.java
+empty definition using pc, found symbol in pc: 
+empty definition using semanticdb
+empty definition using fallback
+non-local guesses:
+
+offset: 1395
+uri: file://<HOME>/Documents/Projects/Personal%20Projects/movie-recommender/backend/src/test/java/com/movierecommender/backend/BackendApplicationTests.java
+text:
+```scala
 package com.movierecommender.backend;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -41,12 +52,12 @@ class BackendApplicationTests {
 
 	@Test
 	void registerUser_throwsException_whenEmailAlreadyExists() {
-		String email = "duplicate_" + System.currentTimeMillis() + "@test.com";
+    String@@ email = "duplicate_" + System.currentTimeMillis() + "@test.com";
 
-		userService.registerUser("First User", email, "password123");
+    userService.registerUser("First User", email, "password123");
 
-		RuntimeException exception = assertThrows(RuntimeException.class, () -> {
-			userService.registerUser("Second User", email, "password123");
+    RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+        userService.registerUser("Second User", email, "password123");
     });
 
     assertEquals("Email already in use", exception.getMessage());
@@ -63,3 +74,9 @@ class BackendApplicationTests {
 		assertEquals(email, jwtUtil.extractEmail(token));
 	}
 }
+```
+
+
+#### Short summary: 
+
+empty definition using pc, found symbol in pc: 
